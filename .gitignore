@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# design handoff (not published)
+design_handoff_rentoleh_landing/
+
+# local agent settings
+.claude/settings.local.json
+**/.claude/settings.local.json
+**/.gstack/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/

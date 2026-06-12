@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+
+  /* RentOleh landing tokens */
+  --bg: #07090a;
+  --panel: #0d1110;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-2: rgba(255, 255, 255, 0.14);
+  --ink: #eaf1ee;
+  --ink-dim: #aab4b1;
+  --muted: #717c79;
+  --mint: #74f2c0;
+  --mint-hi: #a6ffd9;
+  --coral: #ff8a5b;
+  --amber: #ffc24d;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-ink: var(--ink);
+  --color-ink-dim: var(--ink-dim);
+  --color-muted: var(--muted);
+  --color-mint: var(--mint);
+  --color-mint-hi: var(--mint-hi);
+  --color-coral: var(--coral);
+  --color-amber: var(--amber);
+
+  --animate-blink: blink 1s steps(1) infinite;
+  --animate-pulse-dot: pulse-dot 1.1s ease-in-out infinite;
+  --animate-pulse-dot-slow: pulse-dot 1.4s ease-in-out infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes pulse-dot {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 84px;
+}
+
+.landing ::selection {
+  background: var(--mint);
+  color: #04120c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
