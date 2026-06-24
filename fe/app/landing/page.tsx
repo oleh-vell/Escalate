@@ -12,9 +12,9 @@ import { Problem } from "@/components/landing/problem";
 import { BackdropFx } from "@/components/landing/primitives";
 
 export const metadata: Metadata = {
-  title: "RentOleh — your agent's call to a human",
+  title: "EscalateToHuman — your agent's call to a human",
   description:
-    "When your coding agent hits a judgment call, rentoleh pages a human — and waits for the answer before it ships.",
+    "When your coding agent hits a judgment call, escalate pages a human — and waits for the answer before it ships.",
 };
 
 export default function LandingPage() {

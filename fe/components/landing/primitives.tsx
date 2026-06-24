@@ -35,7 +35,7 @@ export function BrandMark() {
       <span className="grid size-[22px] place-items-center rounded-md bg-mint font-bold text-[#04120c] shadow-[0_0_18px_rgba(116,242,192,0.45)]">
         r
       </span>
-      <span>rentoleh</span>
+      <span>escalate</span>
     </span>
   );
 }

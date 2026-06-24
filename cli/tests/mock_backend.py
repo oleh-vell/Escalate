@@ -1,7 +1,12 @@
 """Throwaway in-memory backend for smoke-testing the CLI by hand.
 
 Run: python tests/mock_backend.py [port]
-Messages auto-respond ~5 seconds after creation so 'wait' has something to poll.
+Then: ESCALATE_API_URL=http://localhost:3000 escalate ask "test?"
+Questions auto-answer ~5 seconds after creation so 'wait' has something to poll.
+
+Mirrors the real contract:
+  POST /api/ask           -> {"id"}
+  GET  /api/messages/<id> -> {"status", "answer"}
 """
 
 from __future__ import annotations
@@ -9,28 +14,22 @@ from __future__ import annotations
 import json
 import sys
 import time
-from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any
 
-MESSAGES: dict[str, dict[str, Any]] = {}
-AUTO_RESPOND_AFTER_SECONDS: float = 5.0
+QUESTIONS: dict[str, dict[str, Any]] = {}
+AUTO_ANSWER_AFTER_SECONDS: float = 5.0
 _created: dict[str, float] = {}
 
 
-def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-def _maybe_respond(message_id: str) -> None:
-    message = MESSAGES[message_id]
+def _maybe_answer(question_id: str) -> None:
+    question = QUESTIONS[question_id]
     if (
-        message["status"] == "pending"
-        and time.time() - _created[message_id] > AUTO_RESPOND_AFTER_SECONDS
+        question["status"] == "pending"
+        and time.time() - _created[question_id] > AUTO_ANSWER_AFTER_SECONDS
     ):
-        message["status"] = "responded"
-        message["response"] = f"Mock answer to: {message['question']}"
-        message["responded_at"] = _now()
+        question["status"] = "answered"
+        question["answer"] = f"Mock answer to: {question['question']}"
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -43,37 +42,31 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self) -> None:
-        if self.path == "/api/messages":
-            for message_id in MESSAGES:
-                _maybe_respond(message_id)
-            self._send(200, list(MESSAGES.values()))
-        elif self.path.startswith("/api/messages/"):
-            message_id = self.path.removeprefix("/api/messages/")
-            if message_id not in MESSAGES:
+        if self.path.startswith("/api/messages/"):
+            question_id = self.path.removeprefix("/api/messages/")
+            if question_id not in QUESTIONS:
                 self._send(404, {"error": "not found"})
                 return
-            _maybe_respond(message_id)
-            self._send(200, MESSAGES[message_id])
+            _maybe_answer(question_id)
+            question = QUESTIONS[question_id]
+            self._send(200, {"status": question["status"], "answer": question["answer"]})
         else:
             self._send(404, {"error": "not found"})
 
     def do_POST(self) -> None:
-        if self.path != "/api/messages":
+        if self.path != "/api/ask":
             self._send(404, {"error": "not found"})
             return
         length = int(self.headers.get("Content-Length", "0"))
         body = json.loads(self.rfile.read(length) or b"{}")
-        message_id = f"msg_{len(MESSAGES) + 1}"
-        MESSAGES[message_id] = {
-            "id": message_id,
+        question_id = f"q_{len(QUESTIONS) + 1}"
+        QUESTIONS[question_id] = {
             "question": body.get("question", ""),
             "status": "pending",
-            "response": None,
-            "created_at": _now(),
-            "responded_at": None,
+            "answer": None,
         }
-        _created[message_id] = time.time()
-        self._send(201, MESSAGES[message_id])
+        _created[question_id] = time.time()
+        self._send(201, {"id": question_id})
 
     def log_message(self, format: str, *args: object) -> None:  # noqa: A002
         pass

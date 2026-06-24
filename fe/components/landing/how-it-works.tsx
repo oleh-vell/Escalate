@@ -15,10 +15,10 @@ const STEPS: Step[] = [
   {
     num: "01 · AGENT",
     title: "It asks",
-    body: "The agent fires one command with its question. RentOleh returns a message id instantly.",
+    body: "The agent fires one command with its question. EscalateToHuman returns a message id instantly.",
     code: (
       <>
-        <span className="text-mint">rentoleh</span> ask &quot;...&quot;
+        <span className="text-mint">escalate</span> ask &quot;...&quot;
         <br />
         <span className="text-muted">→ msg_1234</span>
       </>
@@ -49,7 +49,7 @@ const STEPS: Step[] = [
     ),
     code: (
       <>
-        <span className="text-mint">rentoleh</span> messages wait msg_1234
+        <span className="text-mint">escalate</span> messages wait msg_1234
         <br />
         <span className="text-muted">→ resolved ✓</span>
       </>

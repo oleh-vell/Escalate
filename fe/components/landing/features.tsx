@@ -35,7 +35,7 @@ const FEATURES: { fk: string; title: string; body: ReactNode }[] = [
     body: (
       <>
         Noun/verb commands modeled on kubectl. If you know <span className="font-mono">get</span>{" "}
-        and <span className="font-mono">list</span>, you know rentoleh.
+        and <span className="font-mono">list</span>, you know escalate.
       </>
     ),
   },
@@ -44,7 +44,7 @@ const FEATURES: { fk: string; title: string; body: ReactNode }[] = [
     title: "Zero-setup demo",
     body: (
       <>
-        Point <span className="font-mono text-mint">RENTOLEH_BACKEND</span> at your backend and go.
+        Point <span className="font-mono text-mint">ESCALATE_API_URL</span> at your backend and go.
         No auth to wire up for the hackathon.
       </>
     ),

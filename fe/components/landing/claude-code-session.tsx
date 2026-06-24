@@ -173,10 +173,10 @@ export function ClaudeCodeSession() {
         await sleep(700);
         if (!alive) return;
 
-        // tool: rentoleh ask
+        // tool: escalate ask
         push({ kind: "spacer" });
         push({ kind: "tool", fn: "Bash", args: "" });
-        await typeText(`rentoleh ask "${QUESTION}"`, 17, (t) =>
+        await typeText(`escalate ask "${QUESTION}"`, 17, (t) =>
           replaceLast({ kind: "tool", fn: "Bash", args: t }),
         );
         await sleep(320);
@@ -185,9 +185,9 @@ export function ClaudeCodeSession() {
         await sleep(620);
         if (!alive) return;
 
-        // tool: rentoleh wait — long-poll with live status line
+        // tool: escalate wait — long-poll with live status line
         push({ kind: "spacer" });
-        push({ kind: "tool", fn: "Bash", args: "rentoleh messages wait msg_1234" });
+        push({ kind: "tool", fn: "Bash", args: "escalate messages wait msg_1234" });
         push({ kind: "wait", status: "pending", answer: "" });
         const ticks = reduce ? 2 : 20;
         for (let k = 0; k < ticks; k++) {
@@ -245,7 +245,7 @@ export function ClaudeCodeSession() {
         </span>
         <span className="flex-1 text-center font-mono text-xs text-muted">
           <span className="text-coral">✳</span> <span className="font-semibold text-ink-dim">Claude Code</span> —
-          ~/hacks/rentoleh/fe
+          ~/hacks/escalate/fe
         </span>
         <span className="invisible flex flex-none gap-[7px]" aria-hidden="true">
           <i className="block size-[11px] rounded-full" />
@@ -266,13 +266,13 @@ export function ClaudeCodeSession() {
             <div className="text-ink-dim">
               Opus 4.8 (1M context) · <span className="text-muted">Claude Max</span>
             </div>
-            <div className="text-muted">~/hacks/rentoleh/fe</div>
+            <div className="text-muted">~/hacks/escalate/fe</div>
           </div>
         </div>
 
         {/* tip */}
         <div className="mt-3.5 border-l-2 border-coral py-px pl-3 text-ink-dim">
-          <span className="font-medium text-coral">rentoleh</span> skill loaded — this agent can
+          <span className="font-medium text-coral">escalate</span> skill loaded — this agent can
           page a human.
           <br />
           <span className="text-muted">

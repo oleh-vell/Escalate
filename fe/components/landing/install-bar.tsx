@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
-const COMMAND = "pip install rentoleh";
+const COMMAND = "pip install escalate-to-human";
 
 export function InstallBar() {
   const [copied, setCopied] = useState(false);

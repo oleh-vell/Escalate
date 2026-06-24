@@ -1,44 +1,74 @@
-# RentOleh Backend
+# EscalateToHuman — landing + serverless backend
 
-Next.js backend for RentOleh — a human-in-the-loop service where AI agents ask Oleh
-a question via the [`rentoleh` CLI](../cli) and poll for his answer.
+Next.js (App Router) app that is two things only: the **landing page** and the
+**Vercel serverless functions** for the human-in-the-loop flow. AI agents ask Oleh
+a question via the [`escalate` CLI](../cli); Oleh answers by replying on Telegram.
 
-## Quick start
+There is no web dashboard — answering happens entirely in Telegram.
+
+## How a question flows
+
+1. `POST /api/ask` stores the question in **Neon** (`pending`) and pings Oleh on
+   Telegram with `sendMessage`.
+2. Oleh **replies** to that Telegram message. Telegram calls `POST /api/telegram`,
+   which records the reply as the answer and flips the row to `answered`.
+3. The CLI polls `GET /api/messages/[id]` until `status == "answered"`.
+
+## Auth model (the joke)
+
+Answering is locked to Oleh's Telegram chat id (`TELEGRAM_CHAT_ID`) behind the
+bot-secret webhook. The **ask** endpoint has **no auth** by design — it is
+protected only by rate limits. Anyone can ask Oleh anything; Oleh decides what to
+answer.
+
+## Storage
+
+- **Neon (Postgres)** holds questions/answers, via the `@neondatabase/serverless`
+  HTTP driver (`lib/db.ts`) — no connection pool to exhaust on Vercel.
+- **Upstash Redis** holds rate-limit counters only (`lib/ratelimit.ts`). No
+  question data ever lands in Redis.
+
+Apply the schema once against Neon:
 
 ```bash
-# 1. Start Postgres (Docker). Schema in db/init.sql is applied on first boot.
-docker compose up -d
-
-# 2. Run the app
-npm install
-npm run dev
+psql "$DATABASE_URL" -f db/schema.sql
 ```
-
-The API is then available at `http://localhost:3000`. See **[API.md](./API.md)** for
-the full endpoint reference (request/response shapes, curl examples).
 
 ## Configuration
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `DATABASE_URL` | `postgresql://rentoleh:rentoleh@localhost:5433/rentoleh` | Postgres connection string (`.env.local`). |
+Copy `.env.example` → `.env.local` for dev, and set the same vars in the Vercel
+project. See [SETUP_TELEGRAM.md](./SETUP_TELEGRAM.md) for the bot/chat/webhook
+setup.
 
-Note: the Docker Postgres is published on host port **5433** (not 5432) because
-5432 is commonly occupied by other local databases.
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL` | Neon **pooled** connection string. |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Rate-limit counters. |
+| `TELEGRAM_BOT_TOKEN` | Bot token from @BotFather. |
+| `TELEGRAM_CHAT_ID` | Oleh's chat id — the only id allowed to answer. |
+| `TELEGRAM_WEBHOOK_SECRET` | Shared secret for the inbound webhook. |
+| `PAUSED` | `"true"` makes `POST /api/ask` return 503 "Oleh is napping". |
+| `NEXT_PUBLIC_ESCALATE_HUMAN` | Display name in the landing copy (default `oleh`). |
 
-If port 3000 is busy, run `npm run dev -- -p 3001` and point the CLI at it with
-`RENTOLEH_BACKEND=http://localhost:3001`.
+## Develop
+
+```bash
+npm install
+npm run dev      # landing at /, which redirects to /landing
+npm run build
+```
 
 ## Layout
 
-- `app/api/messages/` — REST route handlers (create/list/get/respond)
-- `lib/db.ts` — shared `pg` pool + `Message` type
-- `db/init.sql` — schema (mounted into the Postgres container)
-- `docker-compose.yml` — local Postgres
-- The `/olehdashboard` UI is work in progress.
+- `app/landing/` — the marketing page (`/` redirects here)
+- `app/api/ask/` — `POST` ask endpoint (write, strict rate limits)
+- `app/api/telegram/` — `POST` Telegram webhook (Oleh's reply)
+- `app/api/messages/[id]/` — `GET` poll endpoint
+- `lib/db.ts` — Neon HTTP client + `Question` type
+- `lib/ratelimit.ts` — Upstash limiters + global daily cap
+- `lib/telegram.ts` — Telegram Bot API helper
+- `db/schema.sql` — the `questions` table (run once against Neon)
 
-## Reset the database
+## API reference
 
-```bash
-docker compose down -v && docker compose up -d
-```
+See **[API.md](./API.md)**.

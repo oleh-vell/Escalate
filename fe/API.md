@@ -1,132 +1,91 @@
-# RentOleh Backend API
+# EscalateToHuman Backend API
 
-REST API for asking Oleh (a human) a question and reading his answer. Used by the
-`rentoleh` CLI (agent side) and the dashboard (Oleh side). No authentication.
+Serverless API for asking Oleh (a human) a question and reading his answer. The
+agent side (`escalate` CLI) submits and polls; Oleh answers out-of-band by
+replying on Telegram.
 
 ## Base URL
 
-Defaults to `http://localhost:3000`. If the server runs on another host/port, point
-clients there — the `rentoleh` CLI reads the `RENTOLEH_BACKEND` env var or the
+The deployed Vercel URL. The `escalate` CLI reads `ESCALATE_API_URL` or the
 `--backend` flag.
 
-## The Message object
+## Auth model (by design)
 
-All endpoints accept and return JSON. Every successful response carries one or more
-Message objects:
+- **Asking** (`POST /api/ask`) has **no auth** — anyone can ask. It is protected
+  only by rate limits. That's the joke.
+- **Answering** is locked to Oleh: it can only happen via a Telegram reply from
+  `TELEGRAM_CHAT_ID`, through the bot-secret-protected webhook. There is no public
+  "answer" endpoint.
 
-```json
-{
-  "id": "msg_1",
-  "question": "What is better, Vercel or Cloudflare?",
-  "status": "pending",
-  "response": null,
-  "created_at": "2026-06-12T10:15:30.123Z",
-  "responded_at": null
-}
-```
-
-| Field | Type | Notes |
-|---|---|---|
-| `id` | string | Server-assigned, `msg_<n>` (e.g. `msg_42`). Use it in all `/:id` routes. |
-| `question` | string | The question text. |
-| `status` | string enum | `"pending"` (no answer yet) or `"responded"`. |
-| `response` | string \| null | Oleh's answer. `null` while `status` is `pending`. |
-| `created_at` | string | ISO 8601 timestamp (UTC) of when the question was asked. |
-| `responded_at` | string \| null | ISO 8601 timestamp of the answer, `null` while pending. |
-
-Errors always have the shape `{"error": "<human-readable reason>"}` with a 4xx/5xx
-status code.
+Errors have the shape `{"error": "<reason>"}` with a 4xx/5xx status.
 
 ## Endpoints
 
-### POST /api/messages — ask a question
+### POST /api/ask — ask a question
 
-Caller: agent / CLI (`rentoleh ask`).
+Caller: agent / CLI (`escalate ask`).
 
-Request body: `{"question": string}` — required, non-empty.
+Request body: `{"question": string}` — required, non-empty, ≤ 500 chars.
 
 ```bash
-curl -s -X POST http://localhost:3000/api/messages \
+curl -s -X POST "$BASE/api/ask" \
   -H 'Content-Type: application/json' \
-  -d '{"question": "What is better, Vercel or Cloudflare?"}'
+  -d '{"question": "Vercel or Cloudflare?"}'
 ```
 
-Response `201 Created`:
+Response `201 Created`: `{"id": "<uuid>"}`. The question is stored as `pending`
+and Oleh is paged on Telegram.
+
+Errors:
+- `400` — body is not JSON, or `question` is missing/empty.
+- `413` — `question` longer than 500 characters.
+- `429` — `"Slow down — one human, limited patience"` (per-IP: 3/hour) or
+  `"Oleh is full for today, try tomorrow"` (global: 30/day).
+- `503` — `"Oleh is napping"` (kill switch `PAUSED=true`).
+- `502` — the question was saved but the Telegram notification failed.
+
+### POST /api/telegram — inbound webhook (Oleh's reply)
+
+Caller: **Telegram only.** Registered with `setWebhook` (see SETUP_TELEGRAM.md).
+
+- Verifies header `x-telegram-bot-api-secret-token` against
+  `TELEGRAM_WEBHOOK_SECRET` (`403` otherwise).
+- Acts only on a message from `TELEGRAM_CHAT_ID` that **replies to** a question
+  the bot sent. The reply text becomes the answer; the question flips to
+  `answered`. Everything else is acknowledged and ignored.
+- Always returns `200` quickly and is idempotent (a `status = 'pending'` guard
+  makes Telegram's retried deliveries a no-op).
+
+Not called by clients.
+
+### GET /api/messages/:id — poll for the answer
+
+Caller: agent / CLI (`escalate messages wait` / `get`).
+
+```bash
+curl -s "$BASE/api/messages/<id>"
+```
+
+Response `200 OK`:
 
 ```json
-{
-  "id": "msg_1",
-  "question": "What is better, Vercel or Cloudflare?",
-  "status": "pending",
-  "response": null,
-  "created_at": "2026-06-12T10:15:30.123Z",
-  "responded_at": null
-}
+{ "status": "pending", "answer": null }
 ```
 
-Errors: `400` if the body is not JSON or `question` is missing/empty.
+`status` is `"pending"` or `"answered"`; `answer` is `null` until answered. Poll
+until `status == "answered"`, then read `answer`.
 
-### GET /api/messages — list messages
-
-Caller: dashboard (and `rentoleh messages list`).
-
-Query params: optional `status=pending` or `status=responded`.
-
-```bash
-curl -s 'http://localhost:3000/api/messages?status=pending'
-```
-
-Response `200 OK` — a bare JSON **array** of Message objects, newest first:
-
-```json
-[
-  { "id": "msg_2", "question": "...", "status": "pending", "response": null, "created_at": "...", "responded_at": null },
-  { "id": "msg_1", "question": "...", "status": "responded", "response": "...", "created_at": "...", "responded_at": "..." }
-]
-```
-
-Errors: `400` if `status` is given but isn't `pending`/`responded`.
-
-### GET /api/messages/:id — get one message
-
-Caller: agent / CLI (`rentoleh messages get` and the `wait` polling loop).
-
-```bash
-curl -s http://localhost:3000/api/messages/msg_1
-```
-
-Response `200 OK` with the Message object. Poll this until `status` becomes
-`"responded"`, then read `response`.
-
-Errors: `404` if no message with that id exists.
-
-### POST /api/messages/:id/respond — answer a question
-
-Caller: Oleh's dashboard. Sets `status` to `responded`, stores the answer and
-`responded_at`. Re-posting overwrites the previous answer.
-
-Request body: `{"response": string}` — required, non-empty.
-
-```bash
-curl -s -X POST http://localhost:3000/api/messages/msg_1/respond \
-  -H 'Content-Type: application/json' \
-  -d '{"response": "Vercel is much better"}'
-```
-
-Response `200 OK` with the updated Message object (`status: "responded"`).
-
-Errors: `400` if the body is not JSON or `response` is missing/empty; `404` if no
-message with that id exists.
+Errors:
+- `404` — no question with that id.
+- `429` — polling faster than 60/min for one id.
 
 ## Typical agent flow
 
-1. `POST /api/messages` with the question → save the returned `id`.
-2. Poll `GET /api/messages/:id` every few seconds (the CLI uses 3 s).
-3. When `status == "responded"`, use the `response` field and continue.
-
-With the CLI this is just:
-
 ```bash
-id=$(rentoleh ask "Which AWS region should staging live in?")
-rentoleh messages wait "$id"   # blocks, then prints the answer
+id=$(escalate ask "Which AWS region should staging live in?")
+escalate messages wait "$id"   # polls with backoff, prints the answer
 ```
+
+1. `POST /api/ask` → save the returned `id`.
+2. Poll `GET /api/messages/:id` (the CLI backs off 2s → 15s).
+3. When `status == "answered"`, use `answer` and continue.

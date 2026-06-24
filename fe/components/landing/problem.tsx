@@ -33,7 +33,7 @@ export function Problem() {
           </h2>
           <p className="text-[clamp(17px,1.5vw,20px)] leading-[1.55] text-ink-dim">
             When an agent hits something a human should weigh in on, it doesn&#39;t pause — it
-            picks. RentOleh gives it a third option: ask.
+            picks. EscalateToHuman gives it a third option: ask.
           </p>
         </Reveal>
         <div className="grid grid-cols-3 gap-[18px] max-[920px]:grid-cols-1">

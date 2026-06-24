@@ -7,41 +7,47 @@ import sys
 import time
 from typing import NoReturn
 
-from rentoleh import __version__
-from rentoleh.api import (
+from escalate import __version__, config
+from escalate.api import (
     BACKEND_ENV_VAR,
     DEFAULT_BACKEND,
     ApiError,
-    Message,
-    create_message,
-    get_message,
-    list_messages,
+    Poll,
+    create_question,
+    poll_question,
     resolve_backend,
 )
-from rentoleh.render import write_detail, write_json, write_raw, write_table
+from escalate.render import write_json, write_poll, write_raw
 
 EXIT_OK: int = 0
 EXIT_ERROR: int = 1
 EXIT_PENDING: int = 2
 EXIT_INTERRUPTED: int = 130
 
-POLL_INTERVAL_SECONDS: float = 3.0
-DEFAULT_WAIT_TIMEOUT_SECONDS: int = 100
+# 'wait' polls with exponential backoff: start fast, then ease off so a long wait
+# is cheap. Total wall-clock is bounded by --timeout.
+INITIAL_POLL_SECONDS: float = 2.0
+POLL_BACKOFF: float = 1.5
+MAX_POLL_SECONDS: float = 15.0
+DEFAULT_MAX_WAIT_SECONDS: int = 900  # 15 minutes
+
+# The human in the loop, read from ESCALATE_HUMAN (defaults to "Oleh").
+HUMAN: str = config.human_name()
 
 TOP_EPILOG: str = f"""\
 workflow:
-  id=$(rentoleh ask "Should we use Postgres or SQLite?")
-  rentoleh messages wait "$id"        # prints the answer when Oleh responds
+  id=$(escalate ask "Should we use Postgres or SQLite?")
+  escalate messages wait "$id"        # prints the answer when {HUMAN} responds
   # if wait exits 2 (still pending), just re-run it or check with:
-  rentoleh messages get "$id"
+  escalate messages get "$id"
 
 backend:
   Requests go to {DEFAULT_BACKEND} by default.
   Override with the {BACKEND_ENV_VAR} env var or the --backend flag (flag wins).
 
 statuses:
-  pending     Oleh has not answered yet
-  responded   answer is available in the 'response' field
+  pending     {HUMAN} has not answered yet
+  answered    the answer is available in the 'answer' field
 
 exit codes:
   0    success
@@ -50,40 +56,33 @@ exit codes:
   130  interrupted (Ctrl-C)
 
 output:
-  stdout carries data only (ids, answers, tables, JSON); progress and errors go
-  to stderr. Use '-o json' for stable machine-readable output on any command.
+  stdout carries data only (ids, answers, JSON); progress and errors go to
+  stderr. Use '-o json' for stable machine-readable output on any command.
 """
 
 ASK_EPILOG: str = """\
 example:
-  rentoleh ask "Which AWS region should staging live in?"
-  -> stdout: the new message id (e.g. msg_42), nothing else
-  -> then run: rentoleh messages wait <id>
-"""
-
-LIST_EPILOG: str = """\
-example:
-  rentoleh messages list
-  -> stdout: table with columns ID, STATUS, CREATED, QUESTION (truncated)
-  -> use '-o json' for full untruncated questions and responses
+  escalate ask "Which AWS region should staging live in?"
+  -> stdout: the new question id, nothing else
+  -> then run: escalate messages wait <id>
 """
 
 GET_EPILOG: str = """\
 example:
-  rentoleh messages get msg_42
-  -> stdout: labeled ID/STATUS/CREATED/RESPONDED/QUESTION/RESPONSE block
-  -> exits 0 whether the message is pending or responded
+  escalate messages get <id>
+  -> stdout: a labeled STATUS/ANSWER block
+  -> exits 0 whether the question is pending or answered
 """
 
 WAIT_EPILOG: str = f"""\
 example:
-  rentoleh messages wait msg_42
-  -> polls every {POLL_INTERVAL_SECONDS:g}s; when answered, prints the answer text
-     to stdout (nothing else) and exits 0
+  escalate messages wait <id>
+  -> polls with backoff ({INITIAL_POLL_SECONDS:g}s, x{POLL_BACKOFF:g} each miss,
+     capped at {MAX_POLL_SECONDS:g}s); when answered, prints the answer text to
+     stdout (nothing else) and exits 0
   -> if still pending after --timeout seconds (default
-     {DEFAULT_WAIT_TIMEOUT_SECONDS}, fits inside a ~120s shell tool limit),
-     exits 2 with a retry hint on stderr — re-run the same command to keep
-     waiting, or use '--timeout 0' to wait without bound
+     {DEFAULT_MAX_WAIT_SECONDS}), exits 2 with a retry hint on stderr — re-run
+     the same command to keep waiting, or use '--timeout 0' to wait without bound
 """
 
 
@@ -120,23 +119,23 @@ def _add_common_flags(parser: argparse.ArgumentParser) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = _Parser(
-        prog="rentoleh",
+        prog="escalate",
         description=(
-            "Ask Oleh a question and get his answer. "
+            f"Ask {HUMAN} a question and get their answer. "
             "Submit with 'ask', then poll with 'messages wait' or 'messages get'."
         ),
         epilog=TOP_EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("-help", action="help", help=argparse.SUPPRESS)
-    parser.add_argument("--version", action="version", version=f"rentoleh {__version__}")
+    parser.add_argument("--version", action="version", version=f"escalate {__version__}")
 
     commands = parser.add_subparsers(dest="command", required=True, parser_class=_Parser)
 
     ask = commands.add_parser(
         "ask",
-        help="submit a question to Oleh; prints the new message id",
-        description="Submit a question to Oleh. Prints the new message id to stdout.",
+        help=f"submit a question to {HUMAN}; prints the new question id",
+        description=f"Submit a question to {HUMAN}. Prints the new question id to stdout.",
         epilog=ASK_EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -145,7 +144,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     messages = commands.add_parser(
         "messages",
-        help="inspect questions and their answers (list, get, wait)",
+        help="inspect questions and their answers (get, wait)",
         description="Inspect questions and their answers.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -154,44 +153,35 @@ def build_parser() -> argparse.ArgumentParser:
         dest="subcommand", required=True, parser_class=_Parser
     )
 
-    list_parser = message_commands.add_parser(
-        "list",
-        help="list all messages as a table",
-        description="List all messages. Prints an ID/STATUS/CREATED/QUESTION table to stdout.",
-        epilog=LIST_EPILOG,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    _add_common_flags(list_parser)
-
     get_parser = message_commands.add_parser(
         "get",
-        help="show one message, including the response if answered",
-        description="Show one message. Prints a labeled block to stdout.",
+        help="show one question's status and answer",
+        description="Show one question. Prints a labeled STATUS/ANSWER block to stdout.",
         epilog=GET_EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    get_parser.add_argument("id", help="message id from 'ask' or 'messages list'")
+    get_parser.add_argument("id", help="question id from 'ask'")
     _add_common_flags(get_parser)
 
     wait_parser = message_commands.add_parser(
         "wait",
-        help="block until a message is answered, then print the answer",
+        help="block until a question is answered, then print the answer",
         description=(
-            "Poll a message until it is answered. Prints the answer text to stdout. "
+            "Poll a question until it is answered. Prints the answer text to stdout. "
             "Exits 2 if still pending when the timeout elapses."
         ),
         epilog=WAIT_EPILOG,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    wait_parser.add_argument("id", help="message id from 'ask' or 'messages list'")
+    wait_parser.add_argument("id", help="question id from 'ask'")
     wait_parser.add_argument(
         "--timeout",
         type=int,
-        default=DEFAULT_WAIT_TIMEOUT_SECONDS,
+        default=DEFAULT_MAX_WAIT_SECONDS,
         metavar="SECONDS",
         help=(
             f"give up after this many seconds and exit 2 "
-            f"(default: {DEFAULT_WAIT_TIMEOUT_SECONDS}; 0 = wait forever)"
+            f"(default: {DEFAULT_MAX_WAIT_SECONDS}; 0 = wait forever)"
         ),
     )
     _add_common_flags(wait_parser)
@@ -199,39 +189,33 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _emit_message(message: Message, output: str, raw_key: str | None = None) -> None:
-    """Write a message to stdout: JSON, a single raw field, or the labeled block."""
+def _emit_id(question_id: str, output: str) -> None:
     if output == "json":
-        write_json(message)
-    elif raw_key == "id":
-        write_raw(message["id"])
-    elif raw_key == "response":
-        write_raw(message["response"] or "")
+        write_json({"id": question_id})
     else:
-        write_detail(message)
+        write_raw(question_id)
+
+
+def _emit_poll(poll: Poll, output: str, raw_answer: bool = False) -> None:
+    if output == "json":
+        write_json(poll)
+    elif raw_answer:
+        write_raw(poll["answer"] or "")
+    else:
+        write_poll(poll)
 
 
 def _run_ask(args: argparse.Namespace) -> int:
     backend = resolve_backend(args.backend)
-    message = create_message(backend, args.question)
-    _emit_message(message, args.output, raw_key="id")
-    return EXIT_OK
-
-
-def _run_list(args: argparse.Namespace) -> int:
-    backend = resolve_backend(args.backend)
-    messages = list_messages(backend)
-    if args.output == "json":
-        write_json(messages)
-    else:
-        write_table(messages)
+    question_id = create_question(backend, args.question)
+    _emit_id(question_id, args.output)
     return EXIT_OK
 
 
 def _run_get(args: argparse.Namespace) -> int:
     backend = resolve_backend(args.backend)
-    message = get_message(backend, args.id)
-    _emit_message(message, args.output)
+    poll = poll_question(backend, args.id)
+    _emit_poll(poll, args.output)
     return EXIT_OK
 
 
@@ -240,19 +224,23 @@ def _run_wait(args: argparse.Namespace) -> int:
         raise ApiError("--timeout must be 0 (wait forever) or a positive number of seconds.")
     backend = resolve_backend(args.backend)
     deadline = None if args.timeout == 0 else time.monotonic() + args.timeout
+    interval = INITIAL_POLL_SECONDS
     while True:
-        message = get_message(backend, args.id)
-        if message["status"] == "responded":
-            _emit_message(message, args.output, raw_key="response")
+        poll = poll_question(backend, args.id)
+        if poll["status"] == "answered":
+            _emit_poll(poll, args.output, raw_answer=True)
             return EXIT_OK
-        if deadline is not None and time.monotonic() + POLL_INTERVAL_SECONDS > deadline:
+        now = time.monotonic()
+        if deadline is not None and now >= deadline:
             sys.stderr.write(
                 f"still pending after {args.timeout}s — re-run "
-                f"'rentoleh messages wait {args.id}' or check with "
-                f"'rentoleh messages get {args.id}'.\n"
+                f"'escalate messages wait {args.id}' or check with "
+                f"'escalate messages get {args.id}'.\n"
             )
             return EXIT_PENDING
-        time.sleep(POLL_INTERVAL_SECONDS)
+        sleep_for = interval if deadline is None else min(interval, deadline - now)
+        time.sleep(sleep_for)
+        interval = min(interval * POLL_BACKOFF, MAX_POLL_SECONDS)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -261,8 +249,6 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "ask":
             return _run_ask(args)
-        if args.subcommand == "list":
-            return _run_list(args)
         if args.subcommand == "get":
             return _run_get(args)
         return _run_wait(args)

@@ -18,7 +18,7 @@ export function Hero() {
             it asks <span className="text-mint">Oleh.</span>
           </h1>
           <p className="max-w-[34ch] text-[clamp(17px,1.5vw,20px)] leading-[1.55] text-ink-dim">
-            When your coding agent hits a judgment call, rentoleh pages a human — and waits for
+            When your coding agent hits a judgment call, escalate pages a human — and waits for
             the answer before it ships.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -31,7 +31,7 @@ export function Hero() {
           </div>
           <div className="mt-[26px] flex flex-wrap items-center gap-2.5 font-mono text-[13px] text-muted">
             <span className="rounded-full border border-line bg-white/[0.02] px-[11px] py-[5px] text-ink-dim">
-              pip install rentoleh
+              pip install escalate
             </span>
             <span>drops into Claude Code as a skill</span>
           </div>

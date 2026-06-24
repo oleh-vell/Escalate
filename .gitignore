@@ -2,7 +2,7 @@
 .DS_Store
 
 # design handoff (not published)
-design_handoff_rentoleh_landing/
+design_handoff_escalate_landing/
 
 # local agent settings
 .claude/settings.local.json
@@ -17,3 +17,4 @@ __pycache__/
 .ruff_cache/
 .pytest_cache/
 *.egg-info/
+.vercel
