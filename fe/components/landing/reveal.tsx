@@ -30,7 +30,19 @@ export function Reveal({ children, className, index = 0 }: RevealProps) {
       { threshold: 0.12, rootMargin: "0px 0px -8% 0px" },
     );
     io.observe(node);
-    return () => io.disconnect();
+
+    // Reveal above-the-fold content immediately, and a safety net so nothing
+    // ever stays hidden if the observer doesn't fire (matches the prototype).
+    const raf = requestAnimationFrame(() => {
+      if (node.getBoundingClientRect().top < window.innerHeight * 0.92) setShown(true);
+    });
+    const safety = setTimeout(() => setShown(true), 2200);
+
+    return () => {
+      io.disconnect();
+      cancelAnimationFrame(raf);
+      clearTimeout(safety);
+    };
   }, []);
 
   return (

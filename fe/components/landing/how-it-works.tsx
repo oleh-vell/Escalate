@@ -1,101 +1,109 @@
+import Image from "next/image";
 import type { ReactNode } from "react";
+
+import { cn } from "@/lib/utils";
 
 import { Eyebrow, Wrap } from "./primitives";
 import { Reveal } from "./reveal";
 
-interface Step {
+interface FlowStep {
   num: string;
   title: string;
   body: ReactNode;
-  code: ReactNode;
-  arrow: boolean;
+  img: string;
+  alt: string;
+  reverse: boolean;
 }
 
-const STEPS: Step[] = [
+const STEPS: FlowStep[] = [
   {
     num: "01 · AGENT",
     title: "It asks",
-    body: "The agent fires one command with its question. EscalateToHuman returns a message id instantly.",
-    code: (
-      <>
-        <span className="text-mint">escalate</span> ask &quot;...&quot;
-        <br />
-        <span className="text-muted">→ msg_1234</span>
-      </>
-    ),
-    arrow: true,
+    body: "The agent fires one command with its question. Escalate returns a message id instantly, then waits.",
+    img: "/loop-it-asks.png",
+    alt: "Agent escalating a question to Oleh",
+    reverse: false,
   },
   {
     num: "02 · OLEH",
-    title: "You answer",
-    body: "The question lands on Oleh's dashboard. He reads it, types a reply, hits send. Status flips to responded.",
-    code: (
-      <>
-        <span className="text-mint">/olehdashboard</span>
-        <br />
-        <span className="text-muted">→ &quot;Vercel is much better&quot;</span>
-      </>
-    ),
-    arrow: true,
+    title: "He answers",
+    body: "The question lands to Oleh. He reads it, types a reply, hits send.",
+    img: "/loop-oleh-answers.png",
+    alt: "Oleh answering a question from the Telegram dashboard",
+    reverse: true,
   },
   {
     num: "03 · AGENT",
     title: "It continues",
     body: (
-      <>
-        The agent long-polls with <span className="font-mono text-mint">wait</span> — no
-        busy-loops — gets the answer, and picks up exactly where it left off.
-      </>
+      <>The agent gets the answer, and picks up exactly where it left off.</>
     ),
-    code: (
-      <>
-        <span className="text-mint">escalate</span> messages wait msg_1234
-        <br />
-        <span className="text-muted">→ resolved ✓</span>
-      </>
-    ),
-    arrow: false,
+    img: "/loop-it-continues.png",
+    alt: "Agent receiving Oleh's answer and continuing",
+    reverse: false,
   },
 ];
 
 export function HowItWorks() {
   return (
-    <section className="py-[88px] max-[560px]:py-16" id="how">
+    <section
+      className="border-y border-line bg-bg-1 py-[88px] max-[560px]:py-16"
+      id="how"
+    >
       <Wrap>
         <Reveal className="mb-[52px] max-w-[62ch]">
           <Eyebrow>How it works</Eyebrow>
-          <h2 className="mb-3.5 mt-4 text-[clamp(30px,4.2vw,50px)] font-semibold leading-[1.02] tracking-[-0.025em]">
-            One question. One loop.
+          <h2 className="mb-3.5 mt-4 text-pretty text-[clamp(30px,4.2vw,50px)] font-semibold leading-[1.02] tracking-[-0.025em]">
+            Human taste, in the loop
           </h2>
-          <p className="text-[clamp(17px,1.5vw,20px)] leading-[1.55] text-ink-dim">
-            The agent asks, Oleh answers from a dashboard, the agent continues. The whole
+          <p className="text-pretty text-[clamp(17px,1.5vw,20px)] leading-[1.55] text-ink-dim">
+            The agent asks, Oleh weighs in, the agent continues. The whole
             round-trip is three commands away.
           </p>
         </Reveal>
-        <Reveal>
-          <div className="grid grid-cols-3 overflow-hidden rounded-[14px] border border-line bg-panel max-[920px]:grid-cols-1">
-            {STEPS.map((step) => (
+
+        <div className="flex flex-col gap-[10px] max-[860px]:gap-9">
+          {STEPS.map((step) => (
+            <Reveal key={step.num}>
               <div
-                key={step.num}
-                className="relative border-r border-line px-7 pb-[34px] pt-8 last:border-r-0 max-[920px]:border-b max-[920px]:border-r-0 max-[920px]:last:border-b-0"
-              >
-                <div className="font-mono text-xs tracking-[0.1em] text-mint">{step.num}</div>
-                <h3 className="mb-2.5 mt-4 text-[21px] font-semibold leading-[1.02] tracking-[-0.025em]">
-                  {step.title}
-                </h3>
-                <p className="text-[14.5px] text-ink-dim">{step.body}</p>
-                <div className="mt-[18px] overflow-x-auto rounded-[9px] border border-line bg-[#080b0a] px-[13px] py-[11px] font-mono text-[12.5px] text-ink-dim">
-                  {step.code}
-                </div>
-                {step.arrow && (
-                  <div className="absolute -right-[11px] top-1/2 z-[3] grid size-[22px] -translate-y-1/2 place-items-center rounded-full border border-line-2 bg-bg text-xs text-mint max-[920px]:hidden">
-                    →
-                  </div>
+                className={cn(
+                  "grid items-center gap-[52px] max-[860px]:grid-cols-1 max-[860px]:gap-5",
+                  step.reverse
+                    ? "grid-cols-[1.18fr_0.82fr]"
+                    : "grid-cols-[0.82fr_1.18fr]",
                 )}
+              >
+                <div
+                  className={cn(step.reverse && "max-[860px]:order-1 order-2")}
+                >
+                  <div className="font-mono text-xs tracking-[0.12em] text-mint-deep">
+                    {step.num}
+                  </div>
+                  <h3 className="mb-3 mt-3.5 text-pretty text-[26px] font-semibold leading-[1.02] tracking-[-0.01em]">
+                    {step.title}
+                  </h3>
+                  <p className="max-w-[42ch] text-pretty text-base leading-[1.6] text-ink-dim max-[860px]:max-w-none">
+                    {step.body}
+                  </p>
+                </div>
+                <div
+                  className={cn(
+                    "relative aspect-square overflow-hidden",
+                    step.reverse && "max-[860px]:order-2 order-1",
+                  )}
+                >
+                  <Image
+                    src={step.img}
+                    alt={step.alt}
+                    fill
+                    sizes="(max-width: 860px) 100vw, 50vw"
+                    className="rounded-[10px] object-contain drop-shadow-[0_22px_44px_rgba(13,40,32,0.18)]"
+                  />
+                </div>
               </div>
-            ))}
-          </div>
-        </Reveal>
+            </Reveal>
+          ))}
+        </div>
       </Wrap>
     </section>
   );

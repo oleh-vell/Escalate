@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 
 const AST = ["✢", "✳", "✶", "✻", "✽", "✻", "✶", "✳"];
 
-const TASK = "I would like to deploy agent. Shall I use Vercel or Cloudflare?";
-const QUESTION = "Vercel or Cloudflare for the deploy?";
-const ANSWER = "Vercel is much better.";
+const TASK = "England are in the final again. Is it coming home this time?";
+const QUESTION = "Is it coming home this time?";
+const ANSWER = "For sure.";
 
 type Row =
   | { kind: "spacer" }
@@ -104,7 +104,7 @@ function TranscriptRow({ row }: { row: Row }) {
                 <span className="size-1.5 rounded-full bg-current" />
                 responded
               </Badge>{" "}
-              <span className="text-mint-hi">{row.answer}</span>
+              <span className="text-[#a6ffd9]">{row.answer}</span>
             </>
           )}
         </div>
@@ -119,11 +119,15 @@ export function ClaudeCodeSession() {
 
   useEffect(() => {
     let alive = true;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+    const reduce = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const sleep = (ms: number) =>
+      new Promise<void>((resolve) => setTimeout(resolve, ms));
 
     const push = (row: Row) => setRows((prev) => [...prev, row]);
-    const replaceLast = (row: Row) => setRows((prev) => [...prev.slice(0, -1), row]);
+    const replaceLast = (row: Row) =>
+      setRows((prev) => [...prev.slice(0, -1), row]);
 
     async function typeText(
       text: string,
@@ -163,13 +167,20 @@ export function ClaudeCodeSession() {
         const frames = reduce ? 1 : 8;
         for (let a = 0; a < frames; a++) {
           if (!alive) return;
-          setStatus({ frame: AST[a % AST.length], label: "Deliberating…", esc: "(esc to interrupt)" });
+          setStatus({
+            frame: AST[a % AST.length],
+            label: "Deliberating…",
+            esc: "(esc to interrupt)",
+          });
           await sleep(130);
         }
         setStatus(null);
 
         push({ kind: "spacer" });
-        push({ kind: "asst", text: "That's a judgment call, not a coin flip — paging a human." });
+        push({
+          kind: "asst",
+          text: "That's a judgment call, not a coin flip — paging a human.",
+        });
         await sleep(700);
         if (!alive) return;
 
@@ -187,7 +198,11 @@ export function ClaudeCodeSession() {
 
         // tool: escalate wait — long-poll with live status line
         push({ kind: "spacer" });
-        push({ kind: "tool", fn: "Bash", args: "escalate messages wait msg_1234" });
+        push({
+          kind: "tool",
+          fn: "Bash",
+          args: "escalate messages wait msg_1234",
+        });
         push({ kind: "wait", status: "pending", answer: "" });
         const ticks = reduce ? 2 : 20;
         for (let k = 0; k < ticks; k++) {
@@ -208,7 +223,11 @@ export function ClaudeCodeSession() {
 
         // agent continues with the human's call
         push({ kind: "spacer" });
-        push({ kind: "asst", text: "Oleh answered in 2.4s — going with his call.", check: true });
+        push({
+          kind: "asst",
+          text: "Oleh answered in 2.4s — it's definitely coming home this time.",
+          check: true,
+        });
 
         await sleep(reduce ? 4500 : 6400);
       }
@@ -222,7 +241,11 @@ export function ClaudeCodeSession() {
 
   let field: ReactNode;
   if (input.kind === "placeholder") {
-    field = <span className="text-muted">Try &quot;edit &lt;filepath&gt; to…&quot;</span>;
+    field = (
+      <span className="text-muted">
+        Try &quot;edit &lt;filepath&gt; to…&quot;
+      </span>
+    );
   } else if (input.kind === "typing") {
     field = (
       <>
@@ -235,7 +258,19 @@ export function ClaudeCodeSession() {
   }
 
   return (
-    <div className="overflow-hidden rounded-[14px] border border-line-2 bg-gradient-to-b from-[#0c100f] to-[#090c0b] shadow-[0_40px_90px_-40px_rgba(0,0,0,0.9),0_0_0_1px_rgba(116,242,192,0.06),inset_0_1px_0_rgba(255,255,255,0.04)]">
+    <div
+      style={
+        {
+          // Local dark token scope: the terminal is a dark showpiece on the white page.
+          "--ink": "#eaf1ee",
+          "--ink-dim": "#aab4b1",
+          "--muted": "#717c79",
+          "--line": "rgba(255,255,255,0.08)",
+          "--line-2": "rgba(255,255,255,0.14)",
+        } as CSSProperties
+      }
+      className="flex border flex-col overflow-hidden rounded-[14px] border border-[rgba(13,40,32,0.16)] bg-gradient-to-b from-[#0c100f] to-[#090c0b] shadow-[0_50px_100px_-50px_rgba(13,40,32,0.55),0_0_0_1px_rgba(16,185,129,0.06),inset_0_1px_0_rgba(255,255,255,0.05)]"
+    >
       {/* title bar */}
       <div className="flex items-center gap-2 border-b border-line bg-white/[0.015] px-3.5 py-[11px]">
         <span className="flex flex-none gap-[7px]">
@@ -244,7 +279,8 @@ export function ClaudeCodeSession() {
           <i className="block size-[11px] rounded-full bg-[#28c840]" />
         </span>
         <span className="flex-1 text-center font-mono text-xs text-muted">
-          <span className="text-coral">✳</span> <span className="font-semibold text-ink-dim">Claude Code</span> —
+          <span className="text-coral">✳</span>{" "}
+          <span className="font-semibold text-ink-dim">Claude Code</span> —
           ~/hacks/escalate/fe
         </span>
         <span className="invisible flex flex-none gap-[7px]" aria-hidden="true">
@@ -255,16 +291,18 @@ export function ClaudeCodeSession() {
       </div>
 
       {/* body */}
-      <div className="flex min-h-[532px] flex-col px-[18px] py-4 font-mono text-[13px] leading-[1.72]">
+      <div className="flex min-h-[480px] flex-1 flex-col px-[18px] py-4 font-mono text-[13px] leading-[1.72]">
         {/* header */}
         <div className="flex items-start gap-3.5">
           <Mascot />
           <div>
             <div className="font-bold text-ink">
-              Claude Code <span className="font-normal text-muted">v2.1.170</span>
+              Claude Code{" "}
+              <span className="font-normal text-muted">v2.1.170</span>
             </div>
             <div className="text-ink-dim">
-              Opus 4.8 (1M context) · <span className="text-muted">Claude Max</span>
+              Opus 4.8 (1M context) ·{" "}
+              <span className="text-muted">Claude Max</span>
             </div>
             <div className="text-muted">~/hacks/escalate/fe</div>
           </div>
@@ -272,12 +310,9 @@ export function ClaudeCodeSession() {
 
         {/* tip */}
         <div className="mt-3.5 border-l-2 border-coral py-px pl-3 text-ink-dim">
-          <span className="font-medium text-coral">escalate</span> skill loaded — this agent can
-          page a human.
+          <span className="font-medium text-coral">escalate</span> skill loaded
+          — this agent can page a human.
           <br />
-          <span className="text-muted">
-            Questions land on Oleh&#39;s dashboard · answers come back in-session.
-          </span>
         </div>
 
         {/* transcript */}
@@ -291,7 +326,8 @@ export function ClaudeCodeSession() {
         <div className="mt-3 min-h-[23px] flex-none text-coral">
           {status ? (
             <>
-              {status.frame} {status.label} <span className="text-muted">{status.esc}</span>
+              {status.frame} {status.label}{" "}
+              <span className="text-muted">{status.esc}</span>
             </>
           ) : (
             " "
@@ -305,12 +341,13 @@ export function ClaudeCodeSession() {
         </div>
 
         {/* hint row */}
-        <div className="mt-[9px] flex flex-none justify-between gap-4 text-[11px] text-muted">
+        {/*<div className="mt-[9px] flex flex-none justify-between gap-4 text-[11px] text-muted">
           <span>? for shortcuts</span>
           <span>
-            ⏵⏵ accept edits on <span className="opacity-[0.65]">(shift+tab to cycle)</span>
+            ⏵⏵ accept edits on{" "}
+            <span className="opacity-[0.65]">(shift+tab to cycle)</span>
           </span>
-        </div>
+        </div>*/}
       </div>
     </div>
   );

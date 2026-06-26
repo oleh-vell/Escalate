@@ -16,7 +16,7 @@ API_URL_ENV_VAR: str = "ESCALATE_API_URL"
 DEFAULT_HUMAN: str = "oleh"
 # TODO(escalate): point this at your own deployed dashboard once it's live,
 #   e.g. "https://escalate-to-oleh.vercel.app".
-DEFAULT_API_URL: str = "https://escalate-to-human.vercel.app"
+DEFAULT_API_URL: str = "https://escalate-drab.vercel.app"
 
 
 def human() -> str:

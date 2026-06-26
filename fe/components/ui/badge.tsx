@@ -9,7 +9,7 @@ const badgeVariants = cva(
     variants: {
       variant: {
         outline:
-          "border-[rgba(116,242,192,0.3)] bg-[rgba(116,242,192,0.05)] px-[10px] py-1 text-mint",
+          "border-[rgba(16,185,129,0.3)] bg-[rgba(16,185,129,0.06)] px-[10px] py-1 text-mint-deep",
         pending:
           "gap-[7px] border-[rgba(255,194,77,0.35)] bg-[rgba(255,194,77,0.07)] px-[9px] py-[3px] text-amber",
         responded:

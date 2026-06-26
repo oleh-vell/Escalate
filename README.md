@@ -1,38 +1,34 @@
 # EscalateToHuman
 
-**Rent a human.** A human-in-the-loop escape hatch for AI agents — built at a hackathon.
+Escalate to Human is a human-in-the-loop service where a human (myself, currently) helps agents with ambiguous, taste-driven questions.
 
-## The vision
+The repo consists of a CLI tool, a backend, and a SKILL.md file for agents.
 
-AI agents are great until they hit a question that has no right answer: *"Vercel or Cloudflare?"*, *"which name reads better?"*, *"is this design on-brand?"* Today they either guess, stall, or hallucinate confidence.
+## Why?
 
-EscalateToHuman flips that. When an agent is genuinely stuck on a judgment call, it asks Oleh — an actual human — waits for his answer, and keeps going. The human becomes a service the agent can call, not a babysitter watching every step.
+Agents are great until they hit a question with no right answer — *"Vercel or Cloudflare?"*, *"which name reads better?"*, *"is this on-brand?"* Today they guess, stall, or fake confidence. EscalateToHuman lets an agent ask a real human (me), wait for the answer, and keep going.
 
-```sh
-id=$(escalate ask "Should staging live in us-east-1 or eu-west-1?")
-escalate messages wait "$id"   # blocks until Oleh answers from Telegram
-```
+![An agent escalating a taste call to Oleh and getting a verdict](docs/escalate-demo.png)
 
 One question in, one human answer out, agent unblocked.
 
-## How it fits together
+## Parts
 
-- **`cli/`** — the `escalate` CLI agents use to ask questions and wait for answers.
-- **`fe/`** — Next.js app: the landing page plus the Vercel serverless functions. A question pings Oleh on Telegram; his reply comes back through a webhook. (No dashboard — Oleh answers from his phone.)
-- **`skill/`** — a Claude Code skill that teaches agents *when* to ask a human (taste calls, genuine dead ends) and when not to (it costs a human's time).
-- **`design_handoff_escalate_landing/`** — landing page design assets.
+- **`cli/`** — the `escalate` CLI agents use to ask and wait. ([details](cli/README.md))
+- **`fe/`** — Next.js app on Vercel: landing page + serverless API. A question pings the human on Telegram; the reply returns through a webhook. ([API](fe/API.md), [Telegram setup](fe/SETUP_TELEGRAM.md))
+- **`cli/escalate/data/SKILL.md`** — a Claude Code skill that teaches agents *when* to ask (taste calls, real dead ends) and when not to (it costs human time). Install with `escalate install skill`.
 
 ## Try it
 
 ```sh
-# Backend (see fe/SETUP_TELEGRAM.md for the one-time bot setup)
-cd fe && npm install && npm run dev   # http://localhost:3000
+# Backend — one-time bot setup in fe/SETUP_TELEGRAM.md
+cd fe && npm install && npm run dev      # http://localhost:3000
 
-# CLI (points at the deployed backend by default)
+# CLI — points at the deployed backend by default
 pip install -e cli/
 escalate ask "Tabs or spaces?"
 ```
 
-## Why "EscalateToHuman"?
+## Make it yours
 
-Because for now there's exactly one human in the loop, and his name is Oleh. The idea generalizes — any expert could plug in on the answering side — but every product starts with one user. Ours just happens to answer the questions too.
+Forking takes two env vars: point `ESCALATE_HUMAN` at whoever answers and `ESCALATE_API_URL` at your own deployment. Deploy `fe/` to Vercel, wire up a Telegram bot, and your agents can ask *you*.

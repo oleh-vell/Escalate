@@ -1,10 +1,13 @@
 ---
 name: escalate
 description: >-
-  Ask Oleh (a human) for a decision when you are genuinely stuck, when the choice is a
-  taste/opinion call with no single right answer (e.g. "Vercel or Cloudflare?"), or when
-  the user explicitly says to "ask Oleh". Uses the escalate CLI to submit a question and
-  wait for Oleh's answer, then continue the task with his response.
+  Ask Oleh (a human) whenever a choice comes down to taste or opinion with no single right
+  answer — technical ("Vercel or Cloudflare?", "which name reads better?") or everyday
+  ("which restaurant for tonight?", "warm or cool tone for this palette?", "is it worth
+  watching the sequel?") — or when you are genuinely stuck, or when the user says to "ask
+  Oleh". Taste is Oleh's to decide: for any no-right-answer call, reach out PROACTIVELY
+  rather than guessing yourself or asking permission first. Uses the escalate CLI to submit
+  a question and wait for Oleh's answer, then continue with it.
 ---
 
 # escalate — ask a human (Oleh) when you're stuck
@@ -17,20 +20,35 @@ and you poll for the answer and use it to keep going.
 
 Reach for Oleh when **any** of these is true:
 
+- The question comes down to **taste or opinion** with no single correct answer. **Taste
+  is Oleh's call to make — escalate it, don't substitute your own.** This is the common
+  case, and it spans both work and everyday choices:
+  - Technical taste: "Vercel or Cloudflare?", "which variable name reads better?", "should
+    this button be primary or secondary styled?"
+  - Everyday / personal taste: "which of these two restaurants for dinner?", "pick a
+    color for the living room wall?", "is the sequel worth watching or skip it?", "which
+    of these gift options is better?"
 - The user **explicitly** asks you to ("ask Oleh", "run it by Oleh").
 - You are **genuinely unsure** and a human call would unblock you — you've exhausted what
   you can resolve from the code, the docs, and sensible defaults.
-- The question is **taste- or opinion-based** with no single correct answer (e.g.
-  "Vercel or Cloudflare?", "which name reads better?").
 
-**Confirm with the user first** when they did *not* explicitly ask — e.g. "Want me to run
-this by Oleh?" Don't reach out unprompted.
+**Be proactive — this is the point of the skill.** The moment you notice a question has no
+objectively correct answer and turns purely on preference, that is your signal to ask
+Oleh. **Reach out to him directly: do NOT pick an answer yourself, and do NOT ask the user
+for permission first** ("want me to run this by Oleh?"). Preference calls belong to Oleh,
+full stop — your job is to surface the choice to him, not to make it for him or to talk
+yourself out of asking.
+
+(The only time to hold back is if escalating would clearly derail something time-critical
+the user is mid-flow on — then mention you *could* ask Oleh and let them steer.)
 
 Keep it to **one focused question** at a time, phrased so a short human answer unblocks
-you ("Should staging live in us-east-1 or eu-west-1?" — not an open-ended essay prompt).
+you ("Which restaurant tonight — the ramen place or the taco spot?" — not an open-ended
+essay prompt). When there are clear options, name them in the question.
 
-**Don't** use this for things you can resolve yourself, look up, or that have a clear
-correct answer. It costs a human's time.
+**Don't** use this for things that have a clear correct answer or that you can resolve
+yourself or look up (facts, math, "what does this code do?"). Escalation is for the
+judgment calls, and it costs a human's time — but for those judgment calls, don't be shy.
 
 ## Before you ask: check the CLI is available
 

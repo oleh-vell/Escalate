@@ -17,6 +17,7 @@ from escalate.api import (
     poll_question,
     resolve_backend,
 )
+from escalate.install import install_skill
 from escalate.render import write_json, write_poll, write_raw
 
 EXIT_OK: int = 0
@@ -72,6 +73,13 @@ example:
   escalate messages get <id>
   -> stdout: a labeled STATUS/ANSWER block
   -> exits 0 whether the question is pending or answered
+"""
+
+INSTALL_SKILL_EPILOG: str = """\
+example:
+  escalate install skill            # -> ~/.claude/skills/escalate/SKILL.md
+  escalate install skill --project  # -> ./.claude/skills/escalate/SKILL.md
+  -> prints the path it wrote; fails (exit 1) if the skill is already installed
 """
 
 WAIT_EPILOG: str = f"""\
@@ -186,6 +194,41 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_common_flags(wait_parser)
 
+    install = commands.add_parser(
+        "install",
+        help="install bundled assets onto this machine (skill)",
+        description="Install assets bundled with the CLI.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    install.add_argument("-help", action="help", help=argparse.SUPPRESS)
+    install_commands = install.add_subparsers(
+        dest="subcommand", required=True, parser_class=_Parser
+    )
+
+    skill_parser = install_commands.add_parser(
+        "skill",
+        help="install the escalate Claude Code skill into ~/.claude/skills",
+        description=(
+            "Copy the bundled escalate skill into your Claude Code skills directory so "
+            "agents can discover it. Fails if it is already installed."
+        ),
+        epilog=INSTALL_SKILL_EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    skill_parser.add_argument(
+        "--project",
+        action="store_true",
+        help="install into ./.claude/skills (this project) instead of ~/.claude/skills",
+    )
+    skill_parser.add_argument("-help", action="help", help=argparse.SUPPRESS)
+    skill_parser.add_argument(
+        "-o",
+        "--output",
+        choices=("text", "json"),
+        default="text",
+        help="output format on stdout (default: text)",
+    )
+
     return parser
 
 
@@ -243,12 +286,23 @@ def _run_wait(args: argparse.Namespace) -> int:
         interval = min(interval * POLL_BACKOFF, MAX_POLL_SECONDS)
 
 
+def _run_install_skill(args: argparse.Namespace) -> int:
+    target = install_skill(args.project)
+    if args.output == "json":
+        write_json({"installed": str(target)})
+    else:
+        write_raw(f"Installed escalate skill to {target}")
+    return EXIT_OK
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     try:
         if args.command == "ask":
             return _run_ask(args)
+        if args.command == "install":
+            return _run_install_skill(args)
         if args.subcommand == "get":
             return _run_get(args)
         return _run_wait(args)

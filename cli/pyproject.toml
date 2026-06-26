@@ -19,6 +19,9 @@ dev = ["ruff", "mypy", "pytest", "types-requests"]
 [tool.setuptools]
 packages = ["escalate"]
 
+[tool.setuptools.package-data]
+escalate = ["data/SKILL.md"]
+
 [tool.setuptools.dynamic]
 version = { attr = "escalate.__version__" }
 

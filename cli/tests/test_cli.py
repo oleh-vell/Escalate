@@ -6,6 +6,7 @@ import io
 import json
 from collections.abc import Iterator
 from contextlib import redirect_stderr, redirect_stdout
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -149,3 +150,38 @@ def test_version() -> None:
     code, out, _ = run_cli(["--version"])
     assert code == EXIT_OK
     assert out.startswith("escalate ")
+
+
+def test_install_skill_writes_bundled_file(tmp_path: Path) -> None:
+    with mock.patch("escalate.install.Path.home", return_value=tmp_path):
+        code, out, err = run_cli(["install", "skill"])
+    target = tmp_path / ".claude" / "skills" / "escalate" / "SKILL.md"
+    assert code == EXIT_OK
+    assert err == ""
+    assert str(target) in out
+    assert target.read_text().startswith("---\nname: escalate")
+
+
+def test_install_skill_project_scope(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    code, out, _ = run_cli(["install", "skill", "--project"])
+    assert code == EXIT_OK
+    assert ".claude/skills/escalate/SKILL.md" in out
+    assert (tmp_path / ".claude/skills/escalate/SKILL.md").exists()
+
+
+def test_install_skill_json_output(tmp_path: Path) -> None:
+    with mock.patch("escalate.install.Path.home", return_value=tmp_path):
+        code, out, _ = run_cli(["install", "skill", "-o", "json"])
+    assert code == EXIT_OK
+    assert "installed" in json.loads(out)
+
+
+def test_install_skill_fails_friendly_when_already_installed(tmp_path: Path) -> None:
+    with mock.patch("escalate.install.Path.home", return_value=tmp_path):
+        first, _, _ = run_cli(["install", "skill"])
+        code, out, err = run_cli(["install", "skill"])
+    assert first == EXIT_OK
+    assert code == EXIT_ERROR
+    assert out == ""
+    assert "already installed" in err

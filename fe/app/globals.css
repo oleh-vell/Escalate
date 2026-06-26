@@ -2,20 +2,23 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0c1714;
 
-  /* EscalateToHuman landing tokens */
-  --bg: #07090a;
-  --panel: #0d1110;
-  --line: rgba(255, 255, 255, 0.08);
-  --line-2: rgba(255, 255, 255, 0.14);
-  --ink: #eaf1ee;
-  --ink-dim: #aab4b1;
-  --muted: #717c79;
-  --mint: #74f2c0;
-  --mint-hi: #a6ffd9;
-  --coral: #ff8a5b;
-  --amber: #ffc24d;
+  /* Escalate landing tokens (white theme) */
+  --bg: #ffffff;
+  --bg-1: #f6f8f7;
+  --bg-2: #eef3f1;
+  --panel: #ffffff;
+  --line: rgba(13, 40, 32, 0.1);
+  --line-2: rgba(13, 40, 32, 0.18);
+  --ink: #0c1714;
+  --ink-dim: #46544f;
+  --muted: #8c948f;
+  --mint: #10b981;
+  --mint-hi: #0e9f6e;
+  --mint-deep: #047857;
+  --coral: #ff6a3d;
+  --amber: #c5870f;
 }
 
 @theme inline {
@@ -25,6 +28,8 @@
   --font-mono: var(--font-geist-mono);
 
   --color-bg: var(--bg);
+  --color-bg-1: var(--bg-1);
+  --color-bg-2: var(--bg-2);
   --color-panel: var(--panel);
   --color-line: var(--line);
   --color-line-2: var(--line-2);
@@ -33,6 +38,7 @@
   --color-muted: var(--muted);
   --color-mint: var(--mint);
   --color-mint-hi: var(--mint-hi);
+  --color-mint-deep: var(--mint-deep);
   --color-coral: var(--coral);
   --color-amber: var(--amber);
 
@@ -63,15 +69,9 @@ html {
   color: #04120c;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), -apple-system, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
