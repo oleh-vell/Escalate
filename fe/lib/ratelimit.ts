@@ -18,7 +18,7 @@ export const pollIdLimit = new Ratelimit({
   limiter: Ratelimit.slidingWindow(60, "1 m"),
 });
 
-const GLOBAL_DAILY_CAP = 30;
+const GLOBAL_DAILY_CAP = 100;
 const DAY_SECONDS = 24 * 60 * 60;
 
 export interface GlobalCapResult {
