@@ -22,3 +22,6 @@ dist/
 *.egg-info/
 .vercel
 .gstack/
+
+# docker
+docker/

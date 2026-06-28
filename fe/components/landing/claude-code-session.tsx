@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 
 const AST = ["✢", "✳", "✶", "✻", "✽", "✻", "✶", "✳"];
 
-const TASK = "England are in the final again. Is it coming home this time?";
+const TASK = "England are in the finals again. Is it coming home this time?";
 const QUESTION = "Is it coming home this time?";
 const ANSWER = "For sure.";
 

@@ -61,7 +61,7 @@ export const QUICKSTART_STEPS: CmdStep[] = [
   { label: "Add the skill to Claude Code", command: "escalate install skill " },
   {
     label: "Ask Claude a taste question",
-    command: 'claude "Ship it or polish it more? If unsure escalate to human"',
+    command: 'claude "Velocity or taste? If unsure escalate to human"',
   },
 ];
 
@@ -71,37 +71,10 @@ interface CmdBlockProps {
   className?: string;
 }
 
-type TokenKind = "bin" | "string" | "arg";
-
-const TOKEN_CLASS: Record<TokenKind, string> = {
-  bin: "font-medium text-ink",
-  string: "text-mint-deep",
-  arg: "text-ink-dim",
-};
-
-/** Split a shell command into coarse tokens so the binary and quoted
- *  strings can be tinted apart from their arguments. */
-function tokenize(command: string): { text: string; kind: TokenKind }[] {
-  const parts = command.match(/"[^"]*"|'[^']*'|\S+/g) ?? [command];
-  return parts.map((text, i) => {
-    const kind: TokenKind = /^["']/.test(text)
-      ? "string"
-      : i === 0
-        ? "bin"
-        : "arg";
-    return { text, kind };
-  });
-}
-
 function CommandText({ command }: { command: string }) {
   return (
-    <code className="text-[14px] leading-relaxed tracking-[-0.01em]">
-      {tokenize(command).map((token, i) => (
-        <span key={i}>
-          {i > 0 ? " " : ""}
-          <span className={TOKEN_CLASS[token.kind]}>{token.text}</span>
-        </span>
-      ))}
+    <code className="text-[14px] font-normal leading-relaxed tracking-[-0.01em] text-ink">
+      {command}
     </code>
   );
 }
@@ -180,12 +153,12 @@ export function CmdBlock({ steps, className }: CmdBlockProps) {
             key={step.label}
             className="group/step rounded-lg px-2.5 py-2 transition-colors duration-150 hover:bg-bg-1 motion-reduce:transition-none"
           >
-            <div className="text-[11px] leading-snug text-ink-dim">
+            <div className="text-[11px] leading-snug text-muted">
               <span className="text-muted">#</span> {step.label}
             </div>
             <div className="mt-1 flex items-baseline gap-2.5">
               <span className="flex-none font-medium text-mint">$</span>
-              <div className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap">
+              <div className="min-w-0 flex-1 truncate">
                 <CommandText command={step.command} />
               </div>
               <button
